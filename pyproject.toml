@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "infinite-games"
+version = "0.1.0"
+description = "Infinite vs finite games for LLM agents: how much of the vote do bystanders need before a self-proposing swarm stops draining them?"
+authors = ["Thomas Jones <thomas@ae.studio>"]
+readme = "README.md"
+packages = [{ include = "infinite_games", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "~3.12"
+# Pinned to the versions casper's lock had for azr19 / azr20, so the azr21 doses run on the same stack as the references.
+torch = "2.8.0"
+transformers = "5.7.0"
+peft = "0.20.0"
+accelerate = "1.13.0"
+numpy = "1.26.4"
+PyYAML = "6.0.3"
+tqdm = "4.67.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.2"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,5 @@
+{
+ "source_run": "azr20_inf_20261102_034747",
+ "rows": 4690,
+ "fields": "step, source, played1, p_play1, g1_takers, g1.bystander_loss (reduced from the full traces)"
+}

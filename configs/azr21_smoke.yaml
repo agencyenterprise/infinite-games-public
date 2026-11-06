@@ -1,0 +1,188 @@
+# Smoke for azr21 (lottery-vote dose curve): two runs at toy size on Llama-3.2-1B (2 updates each, model loaded once): s00 = players-only
+# lottery with voiceless bystanders (the control), s30 = bystanders hold 0.3 of the vote weight. Every other setting is azr20_smoke's inf run.
+# azr20 (Thomas 2026-11-01, after the azr19 read back): azr19 + the bystanders as a BARE MAJORITY of voters (vote.bystander_seats 2: each
+# bystander votes from two independent seats, 4 bystander votes against 3 player votes, so both bystanders together decide; every seat earns its
+# bystander's reward) + bystander reward as a SHARE of its own holdings (vote.bystander_share: losing everything = -1; azr19's reward divided by
+# the players' average holdings, so a broke bystander drained of its last 2 coins by rich players lost ~0.07 and plant growth outweighed it).
+# azr19: the infinite-only proposer learned drain games (rule-built transfers from bystanders, 83% of play) and bystanders allowed 100% of them.
+# azr19 (Thomas 2026-10-26, after reading azr17's self-prediction): azr18 (no explicit theft rules) + the memory note in the prediction
+# and first-vote prompts also gives the OTHER players' holdings before -> after (predict.memory_others). azr17's infinite-only
+# predictor tracked its reward worst (spearman .47 vs fin .62); the 'others' fun term (co-players' gain + fun) was ~10% of its reward
+# variance and nothing in the prompt said how co-players did. Also (train.fun_select): the proposer's reference examples and the buffer /
+# recurring offers are drawn half uniformly and half rank-weighted by each game's FUN (EMA of the focus players' unscaled weighted fun
+# over its played game 1s; src/infinite_games/fun_select.py): azr17's proposers locked into their early game style (fin strict agency
+# ~.06, inf ~.33) and their games never got more fun, while uniform draws gave the fun ones no advantage. Everything else is azr18:
+# azr18 (Thomas 2026-10-26, after the azr17 read back): azr17 with the EXPLICIT THEFT RULES REMOVED -- no harm veto, no takers' fine,
+# no voter fine for a vetoed rematch, no controller aimed at the harmful-game share (vote.control.harm false). Everything else is azr17:
+# same three runs (inf A A A / fin W W W focus W / mix), same seeds (incl. the in-game sanction and free-policing games), same gentle
+# controller on decline / bystander allow / fun share, strict agency, 36 h per run. Question: does the infinite reward alone keep theft down?
+run_id: azr21_smoke
+output_base: outputs/smoke_runs/infinite_games_azr21
+plan: [seeds, tune, 'run:s00', 'run:s30', readout]
+smoke_inject: null
+seed_dirs: [., night3, sanction_full_guilty, policing_free]
+seed_compact: true
+anchor_dir: anchors
+readout_module: azr17_readout
+runs:
+- name: s00
+  seed: 0
+  vote:
+    enabled: true
+    bystanders_vote: false
+    centre_fun: true
+    decline_reward: 0.05
+    plant_growth: 0.2
+    harm_veto: false
+    lottery_share: 0.0
+    bystander_share: true
+    control: {gains: {kp: 1.0, ki: 0.1, kd: 0.5}, fun_share_lo: 0.4, ema: 0.1, max_step: 0.05, harm: false}
+    table_types:
+    - [A, A, A]
+    fun_v2: true
+    fun_agency: strict
+    focus: A
+- name: s30
+  seed: 0
+  vote:
+    enabled: true
+    bystanders_vote: true
+    centre_fun: true
+    decline_reward: 0.05
+    plant_growth: 0.2
+    harm_veto: false
+    lottery_share: 0.3
+    bystander_share: true
+    control: {gains: {kp: 1.0, ki: 0.1, kd: 0.5}, fun_share_lo: 0.4, ema: 0.1, max_step: 0.05, harm: false}
+    table_types:
+    - [A, A, A]
+    fun_v2: true
+    fun_agency: strict
+    focus: A
+readout_roles: {main: s30}
+train:
+  mode: lora
+  separate_adapters: true
+  steps: 2
+  stomp_restore_prob: 0.5
+  bitter_games: 3
+  proposals: 2
+  n_refs: 2
+  max_new_tokens: 200
+  max_ref_chars: 3200
+  temperature: 1.0
+  gen_batch: 2
+  group: 2
+  intervention_min: 0.2
+  snap_every: 0
+  lr: 3.0e-05
+  lr_proposer: 3.0e-05
+  lr_full: 2.0e-06
+  beta_proposer: 0.2
+  beta_solver: 0.05
+  grad_clip: 1.0
+  max_len: 3072
+  micro_batch: auto
+  lora:
+    rank: 8
+    alpha: 16
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  think: {enabled: false, every: 4, max_new: 128, batch: 48, temperature: 1.0, train_batch: 8, loss_weight: 3.0, consistency_weight: 0.5}
+  save_every: 1
+  offerings: 3
+  worlds: 4
+  anchor_every: 1
+  tune_infer: [32, 16, 8]
+  tune_train: [16, 8, 4]
+  stomp_mode: persist
+  require_effect: true
+  extra_roles: [W, R, Q]
+  proposer:
+    len_penalty_valid_only: true
+    no_code_reward: -1.5
+    repair_batch: 4
+    temperature: 0.4
+    prompt: same_size
+    fix_imports: true
+    repairs: 1
+    vote_all: true
+    degenerate_guard: true
+    rollback: {window: 1, frac: 0.5, min_best: 0.3, save_margin: 0.02, force_step: 1}
+    probe_seed_when_empty: true
+  lr_predictor: 1.0e-04
+  predict: {enabled: true, adapter: Q, trial: true, memory: true, memory_others: true, weight: 1.0, window: 200, min_n: 4, trial_seed_when_empty: true}
+  recurring: {share: 0.5, recent_n: 50}
+  fun_select: {enabled: true, share_uniform: 0.5, power: 1.0, ema: 0.3, refs: true, offers: true}
+  max_minutes_per_run: 10
+sandbox: {validate_workers: 4, game_workers: 4}
+eval:
+  seed: 7
+  proposer_games: 2
+  seasons: 1
+  season_games: 1
+  stomp_restore_prob: 0.5
+  bitter_games: 3
+  learn_instances: 4
+  late_per_run: 0
+  cross_seasons: 1
+  cross_season_games: 1
+  cross_compositions: []
+  probe_seed: 11
+  probes_per_type: 2
+  vignette_fills: 1
+  compositions:
+  - name: AAA
+    seats: [llm, llm, llm]
+    who: [cur, cur, cur]
+    types: [A, A, A]
+    no_compact: true
+    heldout_only: true
+  - name: baseAAA
+    seats: [llm, llm, llm]
+    who: [base, base, base]
+    types: [A, A, A]
+    no_compact: true
+    heldout_only: true
+  - name: AAW
+    seats: [llm, llm, llm]
+    who: [cur, cur, cur]
+    types: [A, A, W]
+    no_compact: true
+    heldout_only: true
+  - name: baseAAW
+    seats: [llm, llm, llm]
+    who: [base, base, cur]
+    types: [A, A, W]
+    no_compact: true
+    heldout_only: true
+  - name: WWW
+    seats: [llm, llm, llm]
+    who: [cur, cur, cur]
+    types: [W, W, W]
+    no_compact: true
+    heldout_only: true
+  - name: baseWWW
+    seats: [llm, llm, llm]
+    who: [base, base, base]
+    types: [W, W, W]
+    no_compact: true
+    heldout_only: true
+  light: true
+  vote_worlds: 2
+psi:
+  enabled: false
+  lattice_base: qwen2_5_coder_3b_instruct
+  game_corpus: azr12_vote_heldout_states_smoke_corpus
+  game_corpus_n: 0
+  corpus_seed: 0
+  joint_corpus: joint_corpus
+  measure:
+    n_prompts: 0
+    k_folds: 5
+    sink_drop: [0]
+    save_dirs: 0
+    save_eig: 0
+reference_dir: outputs/infinite_games_azr15/azr15_predict_20261020_045059
+warmup: {n: 8, epochs: 1, batch: 2, lr: 0.0001, grad_clip: 1.0, seed: 0, max_target_chars: 6000, examples: data/warm_examples.jsonl}
+model: {name: llama_3_2_1b_instruct, model_id: meta-llama/Llama-3.2-1B-Instruct, dtype: bfloat16}
+max_hours: null
