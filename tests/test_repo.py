@@ -42,6 +42,32 @@ def test_configs_load_and_their_files_exist():
         assert (PKG / "azr_seeds" / d["anchor_dir"]).is_dir(), c.name
 
 
+def test_tests_only_name_shipped_configs():
+    """Catches, on the Mac, box-only (torch) tests that point at configs casper had and this repo does not."""
+    shipped = {p.name for p in (ROOT / "configs").glob("*.yaml")}
+
+    def yamls(seg: str) -> set:
+        seg = "\n".join(l.split("#", 1)[0] for l in seg.splitlines())          # code, not comments
+        return set(re.findall(r'([A-Za-z0-9_]+\.yaml)', seg)) | {m + ".yaml" for m in re.findall(r'_cfg\("([A-Za-z0-9_]+)"\)', seg)}
+
+    for f in sorted((ROOT / "tests").glob("*.py")):
+        src = f.read_text(); tree = ast.parse(src)
+        consts = {}                                                            # module-level names bound to config paths
+        for n in tree.body:
+            if isinstance(n, ast.Assign):
+                for t in n.targets:
+                    if isinstance(t, ast.Name):
+                        consts[t.id] = yamls(ast.get_source_segment(src, n))
+        for n in tree.body:
+            if isinstance(n, ast.FunctionDef):
+                seg = ast.get_source_segment(src, n); names = yamls(seg)
+                for c, ys in consts.items():
+                    if re.search(r"\b" + c + r"\b", "\n".join(l.split("#", 1)[0] for l in seg.splitlines())):
+                        names |= ys
+                missing = sorted(x for x in names if x not in shipped)
+                assert not missing, f"{f.name}::{n.name} names {missing}"
+
+
 def test_reference_traces_are_shipped():
     for k in ("azr19_inf", "azr20_inf"):
         assert (ROOT / "data" / "reference" / k / "runs" / "main" / "traces.jsonl").stat().st_size > 100_000

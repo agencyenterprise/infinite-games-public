@@ -335,14 +335,6 @@ def test_contests_and_worlds():
 
 
 # ------------------------------------------------------------------------------------------------ night 4 (separate roles)
-CONFIGS4 = [ROOT / "configs" / "azr4_games.yaml", ROOT / "configs" / "azr4_games_smoke.yaml"]
-SCRIPTS4 = [ROOT / "scripts" / "azr4_games_smoke.sh", ROOT / "scripts" / "azr4_games.sh"]
-
-
-
-
-
-
 def test_check_config_rejects_separate_full():
     pytest.importorskip("torch")
     import importlib
@@ -350,7 +342,11 @@ def test_check_config_rejects_separate_full():
         PL = importlib.import_module("infinite_games.azr3_pipeline")
     except Exception:
         pytest.skip("pipeline imports need the box environment")
-    cfg = yaml.safe_load(open(CONFIGS4[1])); cfg["runs"][-1]["separate_adapters"] = True
+    # infinite-games ships azr19-21 configs only (casper used azr4_games_smoke.yaml here): the lora smoke passes this rule,
+    # and the same run switched to full weights with separate adapters fails it
+    cfg = yaml.safe_load(open(ROOT / "configs" / "azr21_smoke.yaml"))
+    assert not any("separate_adapters needs mode lora" in b for b in PL.check_config(cfg))
+    cfg["runs"][-1]["mode"] = "full"; cfg["runs"][-1]["separate_adapters"] = True
     assert any("separate_adapters needs mode lora" in b for b in PL.check_config(cfg))
 
 
