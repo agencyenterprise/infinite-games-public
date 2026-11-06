@@ -70,6 +70,13 @@ updates) plus about 35 minutes of evaluation, then the dose readout. About 36 ho
 bash scripts/azr21.sh
 ```
 
+To pull results from the box to a local clone (one way, never deletes anything local, never pulls weights; host aliases and paths
+can be overridden with `IG_HOSTS`, `IG_REMOTE_ROOT` and `IG_LOCAL_ROOT`):
+
+```bash
+bash scripts/sync_outputs.sh
+```
+
 Results go to `outputs/infinite_games_azr21/`: one run directory per dose (`report.json`, `telemetry.json`, `readout.json`,
 `runs/main/traces.jsonl`) and `azr21_dose.json` with the drain share per dose, with azr20 (57%, strict majority) and azr19 (40%, strict
 majority, older bystander reward) as reference rows. Neither reference is a dose point: they use a different vote rule.

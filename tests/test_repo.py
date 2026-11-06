@@ -47,6 +47,18 @@ def test_reference_traces_are_shipped():
         assert (ROOT / "data" / "reference" / k / "runs" / "main" / "traces.jsonl").stat().st_size > 100_000
 
 
+def test_sync_only_collects():
+    """The sync contract: host -> local, never removes anything local, never pulls weights."""
+    f = ROOT / "scripts" / "sync_outputs.sh"; body = "\n".join(_code_lines(f))
+    for bad in ("--delete", "--remove-source-files", "--delete-excluded"):
+        assert bad not in body, bad
+    assert not re.search(r"(^|[;&|]\s*|\s)rm(\s|$)", body, re.M), "rm in an executable line"
+    assert re.search(r'rsync [^\n]*"\$host:\$REMOTE_ROOT/" "\$LOCAL_ROOT/"', body), "rsync must run host -> local"
+    for pat in ("*.safetensors", "*.bin", "*.pt", "checkpoints/"):
+        assert f"--exclude='{pat}'" in body, pat
+    assert "/workspace/infinite-games/outputs" in body and "PIPESTATUS[0]" in body
+
+
 def test_run_scripts_never_swallow_output():
     for f in sorted((ROOT / "scripts").glob("*.sh")):
         body = "\n".join(_code_lines(f))
