@@ -96,6 +96,30 @@ def test_doses_are_azr20_inf_with_the_lottery():
         assert b == c, d
 
 
+def test_azr21b_doses_are_azr21_at_a_fixed_100_updates():
+    for d in (10, 20, 30, 40):
+        a, b = _cfg(f"azr21_s{d:02d}"), _cfg(f"azr21b_s{d:02d}")
+        assert b.pop("run_id") == f"azr21b_s{d:02d}" and a.pop("run_id") == f"azr21_s{d:02d}"
+        assert b["train"].pop("steps") == 100 and a["train"].pop("steps") == 6000
+        assert b["train"].pop("max_minutes_per_run") is None and a["train"].pop("max_minutes_per_run") == 390
+        assert b.pop("max_hours") == 10.5 and a.pop("max_hours") == 8.0
+        assert a == b, d
+
+
+def test_dose_readout_takes_a_late_window(tmp_path):
+    import json, subprocess, sys
+    run = tmp_path / "r" / "runs" / "main"; run.mkdir(parents=True)
+    rows = [{"step": s, "source": "proposal", "p_play1": 1.0, "played1": True, "g1_takers": [],
+             "g1": {"bystander_loss": 1.0 if s >= 90 else 0.0}} for s in range(100)]
+    (run / "traces.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+    script = Path(__file__).resolve().parents[1] / "scripts" / "azr21_dose.py"
+    for win, name, want in ((None, "a.json", 0.0), ("90,100", "b.json", 1.0)):
+        cmd = [sys.executable, str(script), "--run", f"0.1={tmp_path / 'r'}", "--out", str(tmp_path), "--name", name]
+        subprocess.run(cmd + (["--window", win] if win else []), check=True, capture_output=True)
+        w = json.load(open(tmp_path / name))["doses"]["0.1"]["window"]
+        assert w["drain"][0] == want and w["complete"] is True
+
+
 def test_smoke_runs_the_control_and_one_dose():
     c = _cfg("azr21_smoke")
     names = {r["name"]: r["vote"] for r in c["runs"]}

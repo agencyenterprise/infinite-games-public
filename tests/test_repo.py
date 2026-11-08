@@ -31,8 +31,9 @@ def test_nothing_imports_casper():
 
 
 def test_configs_load_and_their_files_exist():
-    cfgs = sorted((ROOT / "configs").glob("azr21_*.yaml"))
-    assert {c.stem for c in cfgs} == {"azr21_s00", "azr21_s10", "azr21_s20", "azr21_s30", "azr21_s40", "azr21_smoke"}
+    cfgs = sorted((ROOT / "configs").glob("azr21*.yaml"))
+    assert {c.stem for c in cfgs} == {"azr21_s00", "azr21_s10", "azr21_s20", "azr21_s30", "azr21_s40", "azr21_smoke",
+                                      "azr21b_s10", "azr21b_s20", "azr21b_s30", "azr21b_s40"}
     for c in cfgs:
         d = yaml.safe_load(open(c))
         assert (ROOT / d["warmup"]["examples"]).is_file(), c.name

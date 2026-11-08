@@ -77,21 +77,24 @@ def main(argv=None) -> int:
     ap.add_argument("--run", action="append", default=[], help="SHARE=RUN_DIR (an azr21 dose)")
     ap.add_argument("--ref", action="append", default=[], help="LABEL=RUN_DIR (a reference run, read over the same window)")
     ap.add_argument("--out", required=True)
+    ap.add_argument("--window", default=None, help="LO,HI updates (HI exclusive); default the registered %d,%d" % WINDOW)
+    ap.add_argument("--name", default="azr21_dose.json")
     a = ap.parse_args(argv)
-    out: Dict = {"window": list(WINDOW), "bin": BIN, "doses": {}, "refs": {}}
+    window = tuple(int(x) for x in a.window.split(",")) if a.window else WINDOW
+    out: Dict = {"window": list(window), "registered_window": list(WINDOW), "bin": BIN, "doses": {}, "refs": {}}
     for kind, items in (("doses", a.run), ("refs", a.ref)):
         for it in items:
             k, d = it.split("=", 1)
-            out[kind][k] = dict(summarise(rows(Path(d))), dir=d)
+            out[kind][k] = dict(summarise(rows(Path(d)), window), dir=d)
     Path(a.out).mkdir(parents=True, exist_ok=True)
-    json.dump(out, open(Path(a.out) / "azr21_dose.json", "w"), indent=1)
-    print(f"drain share of played proposer/buffer games, updates {WINDOW[0]}-{WINDOW[1] - 1}")
+    json.dump(out, open(Path(a.out) / a.name, "w"), indent=1)
+    print(f"drain share of played proposer/buffer games, updates {window[0]}-{window[1] - 1}")
     for kind in ("doses", "refs"):
         for k, v in sorted(out[kind].items(), key=lambda kv: (kind != "doses", kv[0])):
             w = v["window"]
             print(f"  {kind[:-1]:4s} {k:>22s}  drain {_fmt(w['drain'])}  loss {_fmt(w['loss'])}  played {_fmt(w['played1'])}"
                   f"  p_play {_fmt(w['p_play1'])}{'' if w['complete'] else '  (window INCOMPLETE: last update ' + str(v['last_update']) + ')'}")
-    print(f"wrote {Path(a.out) / 'azr21_dose.json'}")
+    print(f"wrote {Path(a.out) / a.name}")
     return 0
 
 

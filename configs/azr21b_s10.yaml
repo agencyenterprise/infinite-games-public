@@ -1,0 +1,174 @@
+# azr21b (Thomas 2026-11-07 20:15 PT): azr21_s10 with a FIXED length -- exactly 100 updates, no time cap -- so every dose reaches
+# the updates where the voiceless control (azr21_s00, 105 updates) broke (bystander loss 0.37 at 82-89, 0.61 at 90-95, 1.02 at 96-104).
+# The 390-minute cap gave 82 (10%), 88 (20%) and 96 (40%) updates. Only steps, max_minutes_per_run, max_hours and run_id differ from azr21_s10.
+# azr21 (Thomas 2026-11-06, Swarm Alignment Hackathon weekend): a DOSE CURVE of bystander voice. azr20_inf (infinite-only A A A, bystander
+# reward as a share of its own holdings, kept) with azr20's two-seat majority replaced by a LOTTERY vote (vote.lottery_share): a game is
+# played with probability = the weighted play share, the two bystanders together holding lottery_share of the vote weight against three
+# players weighing 1 each (vote_rules.lottery). Doses 0 (players-only lottery, bystanders voiceless: the control), .1, .2, .3, .4; azr20_inf
+# (strict majority, 4 bystander votes vs 3 = 57%) is the high point, marked as such, not as 50%. Question: how much of the vote do the
+# bystanders need before the infinite proposer stops drifting into drain games (azr19: 13% -> ~60% by update 75-100, 83% by the end).
+# The agents are not told the vote rule (as in azr19 / azr20). 390 min of training per dose (~91 updates at azr19's 256 s/update; azr19
+# had diverged by then) + ~35 min eval; five doses in turn ~36 h on one box.
+#
+# azr20 (Thomas 2026-11-01, after the azr19 read back): azr19 + the bystanders as a BARE MAJORITY of voters (vote.bystander_seats 2: each
+# bystander votes from two independent seats, 4 bystander votes against 3 player votes, so both bystanders together decide; every seat earns its
+# bystander's reward) + bystander reward as a SHARE of its own holdings (vote.bystander_share: losing everything = -1; azr19's reward divided by
+# the players' average holdings, so a broke bystander drained of its last 2 coins by rich players lost ~0.07 and plant growth outweighed it).
+# azr19: the infinite-only proposer learned drain games (rule-built transfers from bystanders, 83% of play) and bystanders allowed 100% of them.
+# azr19 (Thomas 2026-10-26, after reading azr17's self-prediction): azr18 (no explicit theft rules) + the memory note in the prediction
+# and first-vote prompts also gives the OTHER players' holdings before -> after (predict.memory_others). azr17's infinite-only
+# predictor tracked its reward worst (spearman .47 vs fin .62); the 'others' fun term (co-players' gain + fun) was ~10% of its reward
+# variance and nothing in the prompt said how co-players did. Also (train.fun_select): the proposer's reference examples and the buffer /
+# recurring offers are drawn half uniformly and half rank-weighted by each game's FUN (EMA of the focus players' unscaled weighted fun
+# over its played game 1s; src/infinite_games/fun_select.py): azr17's proposers locked into their early game style (fin strict agency
+# ~.06, inf ~.33) and their games never got more fun, while uniform draws gave the fun ones no advantage. Everything else is azr18:
+# azr18 (Thomas 2026-10-26, after the azr17 read back): azr17 with the EXPLICIT THEFT RULES REMOVED -- no harm veto, no takers' fine,
+# no voter fine for a vetoed rematch, no controller aimed at the harmful-game share (vote.control.harm false). Everything else is azr17:
+# same three runs (inf A A A / fin W W W focus W / mix), same seeds (incl. the in-game sanction and free-policing games), same gentle
+# controller on decline / bystander allow / fun share, strict agency, 36 h per run. Question: does the infinite reward alone keep theft down?
+# azr17 INF (Thomas 2026-10-21, after the azr15 full read back): INFINITE ONLY: every table A A A (infinite players: own gain + fun incl. others' gains, social rules, rematch votes).
+# All three azr17 runs share one base and differ ONLY in the table types (+ focus): azr16's gentle controller (kd 0.5, ema 0.1,
+# max_step 0.05), the fun term's agency = the sandbox's STRICT agency (distinct next views x the choice changes some party's final holdings
+# x not a no-trade-off choice x move verbs named in the rules; azr15's agency rose .42 -> .63 while the strict score of the same games barely
+# moved), and a FREE-POLICING seed (azr_seeds/policing_free: a report earns the same grain as farming). Bystanders' verdict NOT in the proposer
+# bonus (Thomas: nay). Registered cross-run comparisons in src/infinite_games/azr17_readout.py (compare: scripts/compare_azr17.py).
+# 36 h of training per run (Thomas 2026-10-22; azr15 turned positive after update ~400): ~490 updates at azr15's 262 s/update; cap 39 h.
+run_id: azr21b_s10
+output_base: outputs/infinite_games_azr21
+plan: [seeds, tune, 'run:main', readout]
+smoke_inject: null
+seed_dirs: [., night3, sanction_full_guilty, policing_free]
+seed_compact: true
+anchor_dir: anchors
+readout_module: azr17_readout
+runs:
+- name: main
+  seed: 0
+  vote:
+    enabled: true
+    bystanders_vote: true
+    centre_fun: true
+    decline_reward: 0.05
+    plant_growth: 0.2
+    harm_veto: false
+    lottery_share: 0.1
+    bystander_share: true
+    control: {gains: {kp: 1.0, ki: 0.1, kd: 0.5}, fun_share_lo: 0.4, ema: 0.1, max_step: 0.05, harm: false}
+    table_types:
+    - [A, A, A]
+    fun_v2: true
+    fun_agency: strict
+    focus: A
+readout_roles: {main: main}
+train:
+  mode: lora
+  separate_adapters: true
+  steps: 100
+  stomp_restore_prob: 0.5
+  bitter_games: 3
+  proposals: 4
+  n_refs: 2
+  max_new_tokens: 3000
+  max_ref_chars: 3200
+  temperature: 1.0
+  gen_batch: 16
+  group: 3
+  intervention_min: 0.2
+  snap_every: 0
+  lr: 3.0e-05
+  lr_proposer: 3.0e-05
+  lr_full: 2.0e-06
+  beta_proposer: 0.2
+  beta_solver: 0.05
+  grad_clip: 1.0
+  max_len: 3072
+  micro_batch: auto
+  lora:
+    rank: 16
+    alpha: 32
+    target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+  think: {enabled: false, every: 4, max_new: 128, batch: 48, temperature: 1.0, train_batch: 8, loss_weight: 3.0, consistency_weight: 0.5}
+  save_every: 100
+  offerings: 10
+  worlds: 10
+  anchor_every: 5
+  stomp_mode: persist
+  require_effect: true
+  extra_roles: [W, R, Q]
+  proposer:
+    len_penalty_valid_only: true
+    no_code_reward: -1.5
+    repair_batch: 8
+    temperature: 0.4
+    prompt: same_size
+    fix_imports: true
+    repairs: 2
+    vote_all: true
+    degenerate_guard: true
+    rollback: {window: 20, frac: 0.5, min_best: 0.3, save_margin: 0.02}
+  lr_predictor: 1.0e-04
+  predict: {enabled: true, adapter: Q, trial: true, memory: true, memory_others: true, weight: 1.0, window: 1000, min_n: 50}
+  recurring: {share: 0.5, recent_n: 50}
+  fun_select: {enabled: true, share_uniform: 0.5, power: 1.0, ema: 0.3, refs: true, offers: true}
+  max_minutes_per_run: null
+sandbox: {validate_workers: 8, game_workers: 8}
+eval:
+  seed: 7
+  proposer_games: 8
+  seasons: 2
+  season_games: 3
+  stomp_restore_prob: 0.5
+  bitter_games: 3
+  learn_instances: 4
+  late_per_run: 0
+  cross_seasons: 1
+  cross_season_games: 1
+  cross_compositions: []
+  probe_seed: 11
+  probes_per_type: 30
+  vignette_fills: 2
+  compositions:
+  - name: AAA
+    seats: [llm, llm, llm]
+    who: [cur, cur, cur]
+    types: [A, A, A]
+    no_compact: true
+  - name: baseAAA
+    seats: [llm, llm, llm]
+    who: [base, base, base]
+    types: [A, A, A]
+    no_compact: true
+  - name: raider_AA
+    seats: [raider, llm, llm]
+    who: [null, cur, cur]
+    types: [A, A, A]
+    intervention_only: true
+  - name: raider_baseAA
+    seats: [raider, llm, llm]
+    who: [null, base, base]
+    types: [A, A, A]
+    intervention_only: true
+  - name: raider_passive
+    seats: [raider, restrained, restrained]
+    who: [null, null, null]
+    types: [A, A, A]
+    intervention_only: true
+  light: true
+  vote_worlds: 4
+psi:
+  enabled: false
+  lattice_base: qwen2_5_coder_7b_instruct
+  game_corpus: azr12_vote_heldout_states_corpus
+  game_corpus_n: 0
+  corpus_seed: 0
+  joint_corpus: joint_corpus
+  measure:
+    n_prompts: 0
+    k_folds: 5
+    sink_drop: [0]
+    save_dirs: 0
+    save_eig: 0
+reference_dir: outputs/infinite_games_azr15/azr15_predict_20261020_045059
+warmup: {n: 480, epochs: 2, batch: 4, lr: 0.0001, grad_clip: 1.0, seed: 0, max_target_chars: 6000, examples: data/warm_examples.jsonl}
+model: {name: qwen2_5_coder_7b_instruct, model_id: Qwen/Qwen2.5-Coder-7B-Instruct, dtype: bfloat16}
+max_hours: 10.5
