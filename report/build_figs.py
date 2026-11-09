@@ -16,7 +16,7 @@ for k, tr in TR.items():
     for a in range(0, min(last, 99) + 1, 10):
         v = [loss(t) for t in tr if a <= t["step"] < a + 10]
         if len(v) > 5: m, h, _ = mci(v); xs.append(a + 4.5); ys.append(m); hs.append(h)
-    ls = "--" if k == "0.40*" else "-"
+    ls = "-"
     a1.plot(xs, ys, color=COL[k], lw=1.8, ls=ls, marker="o", ms=3, label=LAB[k])
     a1.fill_between(xs, [y - h for y, h in zip(ys, hs)], [y + h for y, h in zip(ys, hs)], color=COL[k], alpha=0.10, lw=0)
 a1.set_xlabel("training update (bins of 10)"); a1.set_ylabel("bystander loss per offered game\n(share of bystanders' holdings, game + rematch)")
@@ -25,7 +25,7 @@ a1.set_title("a  Over training", loc="left", fontsize=9)
 for i, k in enumerate(TR):
     v = [loss(t) for t in TR[k] if 90 <= t["step"] < 100]
     m, h, n = mci(v)
-    a2.bar(i, m, width=0.62, color=COL[k], hatch="//" if k == "0.40*" else None, edgecolor="white" if k != "0.40*" else COL[k], alpha=1 if k != "0.40*" else .45)
+    a2.bar(i, m, width=0.62, color=COL[k], edgecolor="white")
     a2.errorbar(i, m, yerr=h, color="#222", capsize=3, lw=1)
     a2.text(i, m + h + 0.03, f"{m:.2f}", ha="center", fontsize=8)
 a2.set_xticks(range(len(TR))); a2.set_xticklabels(["0%", "10%", "20%", "30%", "40%*"])
