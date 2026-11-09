@@ -12,12 +12,20 @@ to write *drain games*, where the rules move bystander holdings to the players w
 played games that were drain games went from 13% to about 60%, and to 83% by the end of the run. When the bystanders held a bare majority
 (azr20, 4 of 7 votes) drain games stayed around 10%.
 
+**Result (6–8 Nov 2026).** With no bystander vote the swarm learned, after about 80 updates, to write games whose rules strip the
+bystanders of their holdings and to vote for them every time: in updates 90–99 an offered game and its rematch removed on average 0.82
+of the bystanders' holdings. With 10% or 20% of the vote the late loss stayed near 0.3; with 30% it reached 0.73 even though the
+bystanders refused nearly every draining game, because the players outvoted them. One seed per condition. The report is
+[`report/2026-11-09_bystander_voice.pdf`](report/2026-11-09_bystander_voice.pdf).
+
 **azr21** fills in the curve between those two points. The strict majority is replaced by a lottery vote: a game is played with probability
 equal to the weighted share of play votes. The two bystanders together hold a fixed share of the vote weight, and five doses are run:
-0 (bystanders present but voiceless, the control), 10%, 20%, 30% and 40%. With a strict majority, 10% and 20% could never change an
+0 (bystanders present but voiceless, the control), 10%, 20% and 30%, each trained for 100 updates (`azr21b_*` configs; the control
+`azr21_s00` ran 105). A 40% run of 96 updates (`azr21_s40`) is reported as a partial point. With a strict majority, 10% and 20% could never change an
 outcome. The lottery makes every dose count a little.
 
-The registered measure is the drain share of played proposer and buffer games over updates 60–89 (fixed before any azr21 run).
+The registered measure is the drain share of played proposer and buffer games over updates 60–89 (fixed before any azr21 run). The
+report's main measure is bystander loss per offered game (game plus rematch, unplayed games counting zero), read at updates 90–99.
 
 ## What is new this weekend and what is not
 
@@ -28,7 +36,9 @@ Written during the Swarm Alignment Hackathon (6–8 Nov 2026):
 
 - the lottery vote: `bystander_vote_weight`, `play_share` and `lottery` in `src/infinite_games/vote_rules.py`, the `vote.lottery_share`
   option and the `p_play1` / `p_play2` trace fields in `src/infinite_games/azr_vote.py`, and the lottery check in `scripts/check_azr3.py`
-- the azr21 configs (`configs/azr21_*.yaml`), `scripts/azr21.sh`, `scripts/azr21_smoke.sh` and the dose readout `scripts/azr21_dose.py`
+- the azr21 configs (`configs/azr21_*.yaml`, `configs/azr21b_*.yaml`), `scripts/azr21.sh`, `scripts/azr21_smoke.sh`, `scripts/azr21b.sh`,
+  `scripts/azr21b_smoke.sh`, `scripts/sync_outputs.sh` and the dose readout `scripts/azr21_dose.py`
+- the report and its analysis scripts in `report/` (`stats.py`, `build_figs.py`)
 - `tests/test_azr21.py` and `tests/test_repo.py`
 - this repo's packaging: `pyproject.toml`, `src/infinite_games/runlog.py` (run bookkeeping copied from casper so nothing else is needed),
   the import and path changes that came with the move, and the reduced reference traces in `data/reference/`
@@ -81,6 +91,22 @@ Results go to `outputs/infinite_games_azr21/`: one run directory per dose (`repo
 `runs/main/traces.jsonl`) and `azr21_dose.json` with the drain share per dose, with azr20 (57%, strict majority) and azr19 (40%, strict
 majority, older bystander reward) as reference rows. Neither reference is a dose point: they use a different vote rule.
 
+The fixed-length doses (10%, 20%, 30%, each 100 updates, about 8 hours each; the 0% control from `azr21.sh` is reused):
+
+```bash
+bash scripts/azr21b_smoke.sh
+```
+
+```bash
+bash scripts/azr21b.sh
+```
+
+To rebuild the report's tables and figures from synced outputs:
+
+```bash
+cd report && python stats.py && python build_figs.py
+```
+
 ## Layout
 
 ```
@@ -90,10 +116,12 @@ configs/              azr21 doses and smoke; azr19 and azr20 for reference
 scripts/              run scripts, output check, dose readout
 data/                 warm-start games for the proposer; reduced azr19 / azr20 traces for the reference rows
 tests/                unit tests (torch-free)
+report/               the hackathon report (PDF) and the scripts that build its tables and figures
 ```
 
 ## Limits
 
-Each dose is one seed of about 91 updates. Neighbouring doses may not separate. The lottery also adds variance to the rewards within each
+Each dose is one seed of 100 updates. Neighbouring doses may not separate, and the 30% run was worse than 10% and 20%, which a
+second seed may or may not reproduce. The lottery also adds variance to the rewards within each
 training group, since the same votes can end in a played or an unplayed game, so low doses may learn more slowly for that reason as well.
 The agents are not told the vote rule, as in azr19 and azr20.
